@@ -2,10 +2,29 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>My GitHub Site</title>
+    <title>Map Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
 </head>
 <body>
-<div id="app"></div>
-<script type="module" src="./dist/index.js"></script>
+<div id="map"></div>
+
+<div id="chatbox">
+    <div id="chat-messages"></div>
+    <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+
+
+<script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+<script type="module" src="./dist/main.js"></script>
 </body>
 </html>
