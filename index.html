@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <title>Map Chat</title>
     <link rel="stylesheet" href="style.css">
-    <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script>
+        // Global debugging function
+        window.debugLog = function(msg, data) {
+            console.log(`[DEBUG] ${msg}`, data || '');
+        }
+
+        // Log when the page loads
+        window.debugLog('Page loaded');
+    </script>
 </head>
 <body>
 <div id="map"></div>
@@ -20,11 +26,24 @@
     </form>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Make L available globally for ES modules
+    window.L = L;
+</script>
+<script type="module">
+    // Debug script loading
+    window.debugLog('About to load main.js');
 
-
-<script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-></script>
-<script type="module" src="./dist/main.js"></script>
+    // Import with error handling
+    import('./dist/main.js')
+        .then(() => window.debugLog('main.js loaded successfully'))
+        .catch(err => {
+            window.debugLog('Error loading main.js', err);
+            document.body.innerHTML += `<div style="color:red;position:fixed;top:0;left:0;background:white;padding:10px;z-index:9999">
+                Error loading JavaScript: ${err.message}
+            </div>`;
+        });
+</script>
 </body>
 </html>

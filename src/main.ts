@@ -1,15 +1,75 @@
-import * as L from 'leaflet';
+// Import only the types, not the actual module
+import type * as LeafletTypes from 'leaflet';
+
+// Then declare the global L variable with the correct type
+declare const L: typeof LeafletTypes;
+
+console.log("Script execution started");
+
+// Debug function
+function debug(msg: string, data?: any) {
+    console.log(`[DEBUG] ${msg}`, data || '');
+    // Also add to DOM for mobile debugging
+    const debugDiv = document.getElementById('debug-console') || createDebugConsole();
+    const msgEl = document.createElement('div');
+    msgEl.textContent = `${msg} ${data ? JSON.stringify(data) : ''}`;
+    debugDiv.appendChild(msgEl);
+
+    // Keep only latest 10 messages
+    while (debugDiv.children.length > 10) {
+        debugDiv.removeChild(debugDiv.firstChild!);
+    }
+}
+
+// Create debug console element
+function createDebugConsole() {
+    const debugDiv = document.createElement('div');
+    debugDiv.id = 'debug-console';
+    debugDiv.style.position = 'fixed';
+    debugDiv.style.top = '10px';
+    debugDiv.style.left = '10px';
+    debugDiv.style.width = '80%';
+    debugDiv.style.maxHeight = '150px';
+    debugDiv.style.overflow = 'auto';
+    debugDiv.style.background = 'rgba(0,0,0,0.7)';
+    debugDiv.style.color = 'white';
+    debugDiv.style.fontSize = '12px';
+    debugDiv.style.padding = '5px';
+    debugDiv.style.zIndex = '1000';
+    debugDiv.style.fontFamily = 'monospace';
+    document.body.appendChild(debugDiv);
+    return debugDiv;
+}
 
 // Init map
+debug("Initializing map");
 const map = L.map('map').setView([0, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
+debug("Map initialized");
 
 // Chat handling
+debug("Getting DOM elements");
 const chatMessages = document.getElementById("chat-messages")!;
 const chatInput = document.getElementById("chat-input") as HTMLInputElement;
 const chatForm = document.getElementById("chat-form") as HTMLFormElement;
+
+// Log DOM elements
+debug("DOM elements found", {
+    chatMessages: !!chatMessages,
+    chatInput: !!chatInput,
+    chatForm: !!chatForm
+});
+
+if (!chatMessages || !chatInput || !chatForm) {
+    debug("ERROR: Missing DOM elements", {
+        chatMessages: document.getElementById("chat-messages"),
+        chatInput: document.getElementById("chat-input"),
+        chatForm: document.getElementById("chat-form")
+    });
+    throw new Error("Critical DOM elements not found");
+}
 
 // Chat history storage
 interface ChatMessage {
@@ -22,41 +82,74 @@ const STORAGE_KEY = 'map-chat-history';
 
 // Load chat history from localStorage
 function loadChatHistory(): ChatMessage[] {
-    const savedHistory = localStorage.getItem(STORAGE_KEY);
-    return savedHistory ? JSON.parse(savedHistory) : [];
+    debug("Loading chat history");
+    try {
+        const savedHistory = localStorage.getItem(STORAGE_KEY);
+        debug("Saved history", savedHistory);
+        const parsed = savedHistory ? JSON.parse(savedHistory) : [];
+        debug("Parsed history", parsed);
+        return parsed;
+    } catch (e) {
+        debug("Error loading chat history", e);
+        return [];
+    }
 }
 
 // Save chat history to localStorage
 function saveChatHistory(messages: ChatMessage[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    debug("Saving chat history", messages.length);
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch (e) {
+        debug("Error saving chat history", e);
+    }
 }
 
 // Initialize with saved history
 const chatHistory = loadChatHistory();
+debug("Chat history loaded", chatHistory.length);
+
+// Display all messages from history
+function displayChatHistory() {
+    debug("Displaying chat history");
+    chatMessages.innerHTML = ''; // No more error
+    chatHistory.forEach((message, i) => {
+        debug(`Displaying message ${i+1}/${chatHistory.length}`);
+        displayMessage(message);
+    });
+}
+
 displayChatHistory();
 
 // Auto-expand input box
 chatInput.addEventListener("input", () => {
+    debug("Input changed");
     chatInput.style.height = "auto";
     chatInput.style.height = `${chatInput.scrollHeight}px`;
 });
 
 chatForm.addEventListener("submit", (e) => {
+    debug("Form submitted");
     e.preventDefault();
     if (chatInput.value.trim()) {
         const userMessage = chatInput.value.trim();
+        debug("User message", userMessage);
         addChatMessage("You", userMessage);
 
         // Simple echo response
         const botMessage = `You said: "${userMessage}"`;
+        debug("Bot response", botMessage);
         addChatMessage("Bot", botMessage);
 
         chatInput.value = "";
         chatInput.style.height = "auto"; // Reset height
+    } else {
+        debug("Empty message, not sending");
     }
 });
 
 function addChatMessage(sender: string, text: string) {
+    debug(`Adding message from ${sender}`, text);
     // Create a new message object
     const messageObj: ChatMessage = {
         sender,
@@ -66,6 +159,7 @@ function addChatMessage(sender: string, text: string) {
 
     // Add to history array
     chatHistory.push(messageObj);
+    debug("New history length", chatHistory.length);
 
     // Save to localStorage
     saveChatHistory(chatHistory);
@@ -76,25 +170,31 @@ function addChatMessage(sender: string, text: string) {
 
 // Display a single message in the chat UI
 function displayMessage(message: ChatMessage) {
-    const msg = document.createElement("div");
-    msg.className = "msg " +
-        (message.sender === "You" ? "user" :
-            message.sender === "Bot" ? "bot" : "map");
-    msg.textContent = `${message.sender}: ${message.text}`;
-    chatMessages.appendChild(msg);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
+    debug("Displaying message", message);
+    try {
+        const msg = document.createElement("div");
+        msg.className = "msg";
 
-// Display all messages from history
-function displayChatHistory() {
-    chatMessages.innerHTML = ''; // Clear existing messages
-    chatHistory.forEach(message => {
-        displayMessage(message);
-    });
+        if (message.sender === "You") {
+            msg.className += " user";
+        } else if (message.sender === "Bot") {
+            msg.className += " bot";
+        } else {
+            msg.className += " map";
+        }
+
+        msg.textContent = `${message.sender}: ${message.text}`;
+        chatMessages.appendChild(msg); // No more error
+        chatMessages.scrollTop = chatMessages.scrollHeight; // No more error
+        debug("Message displayed successfully");
+    } catch (e) {
+        debug("Error displaying message", e);
+    }
 }
 
 // Add button to clear chat history
 function addClearHistoryButton() {
+    debug("Adding clear history button");
     const clearButton = document.createElement("button");
     clearButton.textContent = "Clear History";
     clearButton.style.position = "absolute";
@@ -109,12 +209,20 @@ function addClearHistoryButton() {
     clearButton.style.cursor = "pointer";
 
     clearButton.addEventListener("click", () => {
+        debug("Clear history clicked");
         chatHistory.length = 0;
         localStorage.removeItem(STORAGE_KEY);
         displayChatHistory();
+        debug("History cleared");
     });
 
-    document.getElementById("chatbox")!.appendChild(clearButton);
+    const chatbox = document.getElementById("chatbox");
+    if (chatbox) {
+        chatbox.appendChild(clearButton);
+        debug("Clear button added");
+    } else {
+        debug("ERROR: Chatbox not found for clear button");
+    }
 }
 
 addClearHistoryButton();
@@ -122,5 +230,8 @@ addClearHistoryButton();
 // Map click → show coordinates in chat
 map.on("click", (e: L.LeafletMouseEvent) => {
     const { lat, lng } = e.latlng;
+    debug("Map clicked", { lat, lng });
     addChatMessage("Map", `You clicked at [${lat.toFixed(2)}, ${lng.toFixed(2)}]`);
 });
+
+debug("Script execution completed");
